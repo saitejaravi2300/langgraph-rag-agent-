@@ -1,202 +1,513 @@
 # 🤖 LangGraph RAG Agent
 
-An agentic Retrieval-Augmented Generation (RAG) system built with **FastAPI** and **LangGraph**, featuring streaming responses, a **PostgreSQL + pgvector** vector store, and a modern **Streamlit** UI. The system supports user authentication, threaded conversations with persistent memory via LangGraph Postgres checkpointers, and tool-augmented reasoning (document retrieval + web search).
+An **agentic Retrieval-Augmented Generation (RAG) application** developed using **FastAPI** and **LangGraph**. The system combines document retrieval, web search, persistent conversational memory, and streaming LLM responses into a single AI assistant.
 
-## 🚀 Features
+The application uses **PostgreSQL with pgvector** for semantic document search, **LangGraph PostgreSQL checkpointers** for conversation persistence, and a **Streamlit** interface for interacting with the agent.
 
-- **Agentic RAG with LangGraph**: ReAct-style agent with tools for document retrieval and web search
-- **Streaming responses end-to-end**: Real-time token streaming from backend to the Streamlit UI
-- **Threaded conversations**: Per-user threads with persistent histories stored via Postgres checkpointers
-- **PostgreSQL + pgvector**: Vector storage and semantic retrieval over user-uploaded documents
-- **Authentication and JWT**: Signup, login, refresh; per-user isolation for threads and docs
-- **Document ingestion**: PDF, DOCX, and TXT support with chunking and async indexing
-- **Tooling**: Built-in `retrieve_user_documents` and Tavily web search integration
-- **Async-first backend**: FastAPI + SQLAlchemy 2.0 async, production-ready logging and healthchecks
+## 🚀 Key Features
 
-## 💻 Tech Stack
+* **Agentic RAG with LangGraph** – Uses a ReAct-style workflow to decide when to retrieve documents or perform web searches.
+* **Real-time streaming** – Responses are streamed incrementally from the backend to the frontend.
+* **Persistent conversations** – Conversations are organized into individual threads with history stored using LangGraph checkpointers.
+* **Semantic document search** – Uploaded documents are converted into embeddings and stored in PostgreSQL/pgvector.
+* **User authentication** – JWT-based signup, login, refresh-token handling, and user-specific data isolation.
+* **Multi-format document ingestion** – Supports PDF, DOCX, and TXT documents.
+* **Tool-based reasoning** – The agent can use document retrieval and Tavily web search as external tools.
+* **Async backend architecture** – Built around FastAPI and SQLAlchemy 2.0 asynchronous APIs.
+* **Health and logging support** – Includes backend health checks and structured application logging.
 
-- **Backend**: FastAPI, LangGraph, LangChain, SQLAlchemy, Pydantic v2
-- **Vector Store**: PostgreSQL + pgvector (via `langchain-postgres`)
-- **Checkpointer**: LangGraph Postgres Checkpointer (async)
-- **Frontend**: Streamlit
-- **LLM/Embeddings**: OpenAI-compatible models (configurable base URLs)
+## 💻 Technology Stack
+
+### Backend
+
+* FastAPI
+* LangGraph
+* LangChain
+* SQLAlchemy 2.0
+* Pydantic v2
+
+### Database & Vector Search
+
+* PostgreSQL
+* pgvector
+* `langchain-postgres`
+* LangGraph PostgreSQL Checkpointer
+
+### Frontend
+
+* Streamlit
+
+### AI / LLM
+
+* OpenAI-compatible LLM APIs
+* Configurable embedding models
+* LangChain tools and retrievers
 
 ## 📋 Prerequisites
 
-- Python 3.12+
-- Docker and Docker Compose (recommended for Postgres + full stack)
+Before running the project, make sure the following are installed:
 
-## 📦 Quick Start (Docker Compose)
+* Python 3.12+
+* Docker
+* Docker Compose
+* PostgreSQL with pgvector
+* API key for the selected LLM provider
+* Tavily API key if web search is enabled
 
-1. Copy environment template and edit values:
-   ```bash
-   cp env.example .env
-   ```
-2. Start the full stack:
-   ```bash
-   docker compose up --build
-   ```
+## 📦 Quick Start with Docker
 
-Services:
-- Backend API: `http://localhost:8000/api/v1`
-- API Docs: `http://localhost:8000/api/v1/docs`
-- Frontend UI: `http://localhost:8501`
+### 1. Configure environment variables
 
-Notes:
-- The `pgvector/pgvector:pg16` image includes the `vector` extension. If you use your own Postgres, ensure `CREATE EXTENSION IF NOT EXISTS vector;` is enabled.
+Copy the example environment file:
 
-## 🧰 Local Development
+```bash
+cp env.example .env
+```
 
-### 1) Backend (FastAPI)
+Update the `.env` file with your API keys, database credentials, model configuration, and JWT settings.
+
+### 2. Start the application
+
+Run:
+
+```bash
+docker compose up --build
+```
+
+After the containers start successfully, the application will be available at:
+
+* **Backend API:** `http://localhost:8000/api/v1`
+* **Swagger Documentation:** `http://localhost:8000/api/v1/docs`
+* **ReDoc:** `http://localhost:8000/api/v1/redoc`
+* **Streamlit Frontend:** `http://localhost:8501`
+
+> **Note:** The recommended PostgreSQL image is `pgvector/pgvector:pg16`.
+> If you are using an existing PostgreSQL installation, make sure the pgvector extension is enabled.
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+## 🧰 Running Locally
+
+### Backend Setup
+
+Navigate to the backend directory:
 
 ```bash
 cd backend
+```
+
+Create and activate a virtual environment:
+
+```bash
 python -m venv .venv
-.venv/Scripts/activate     # Windows
-# source .venv/bin/activate  # Linux/macOS
+```
+
+For Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+For Linux/macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+Install the required dependencies:
+
+```bash
 pip install -r requirements.txt
 ```
 
-Ensure a Postgres instance is running with pgvector. Example (Docker):
+### Start PostgreSQL with pgvector
+
+If PostgreSQL is not already running, Docker can be used:
+
 ```bash
-docker run --name langgraph_postgres -p 5432:5432 \
-  -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=test -e POSTGRES_DB=langgraph_db \
+docker run --name langgraph_postgres \
+  -p 5432:5432 \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=test \
+  -e POSTGRES_DB=langgraph_db \
   -d pgvector/pgvector:pg16
 ```
 
-Run the API:
+Start the FastAPI server:
+
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --reload-dir ./app
 ```
 
-### 2) Frontend (Streamlit)
+### Frontend Setup
+
+Open another terminal:
 
 ```bash
 cd frontend
+```
+
+Create the virtual environment:
+
+```bash
 python -m venv .venv
-.venv/Scripts/activate     # Windows
-# source .venv/bin/activate  # Linux/macOS
+```
+
+Activate it and install dependencies:
+
+```bash
 pip install -r requirements.txt
+```
+
+Launch Streamlit:
+
+```bash
 streamlit run gui/main.py
 ```
 
-## 🔧 Environment Variables
+## 🔧 Environment Configuration
 
-Create a project-root `.env` (both backend and frontend read from it). Key settings:
+Create a `.env` file in the project root.
 
-Core LLM settings:
-- `OPENAI_API_KEY`
-- `MODEL_PROVIDER` (e.g., `openai`)
-- `MODEL_NAMES` (JSON list, e.g., `["gpt-4o", "gpt-4o-mini"]`)
-- `MODEL_BASE_URL` (optional for OpenAI-compatible endpoints)
-- `EMBEDDINGS_MODEL_NAME` (e.g., `text-embedding-3-large`)
-- `EMBEDDINGS_BASE_URL` (optional)
-- `TAVILY_API_KEY` (for web search tool)
+### LLM Configuration
 
-Auth and tokens:
-- `TOKEN_BEARER_URL` (default `/api/v1/auth/login`)
-- `JWT_SECRET` (use a strong, random value)
-- `JWT_ALGORITHM` (e.g., `HS256`)
-- `ACCESS_TOKEN_EXPIRY_MINS` (e.g., `1440`)
-- `REFRESH_TOKEN_EXPIRY_DAYS` (e.g., `1`)
+```env
+OPENAI_API_KEY=your_api_key
+MODEL_PROVIDER=openai
+MODEL_NAMES=["gpt-4o","gpt-4o-mini"]
+MODEL_BASE_URL=
+```
 
-Database and vector store:
-- `POSTGRES_HOST` (e.g., `127.0.0.1` or `postgres` in Docker)
-- `POSTGRES_PORT` (e.g., `5432`)
-- `POSTGRES_USER` (e.g., `postgres`)
-- `POSTGRES_PASSWORD` (e.g., `test`)
-- `POSTGRES_DATABASE` (e.g., `langgraph_db`)
-- `PGVECTOR_COLLECTION_NAME` (e.g., `my_collection`)
+### Embedding Configuration
 
-Frontend:
-- `BACKEND_BASE_URL` (e.g., `http://127.0.0.1:8000/api/v1` when running locally)
+```env
+EMBEDDINGS_MODEL_NAME=text-embedding-3-large
+EMBEDDINGS_BASE_URL=
+```
 
-Example values are provided in `env.example`.
+### Web Search
 
-## 🧩 API Overview
+```env
+TAVILY_API_KEY=your_tavily_api_key
+```
 
-Base URL: `/api/v1`
+### Authentication
 
-Auth:
-- `POST /auth/signup`
-- `POST /auth/login`
-- `GET /auth/logout`
-- `GET /auth/refresh-token`
+```env
+TOKEN_BEARER_URL=/api/v1/auth/login
+JWT_SECRET=your_secure_secret
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRY_MINS=1440
+REFRESH_TOKEN_EXPIRY_DAYS=1
+```
 
-Users:
-- `GET /users/me`
-- `PUT /users/user-profile/{user_id}`
-- `DELETE /users/user-profile/{user_id}`
+### PostgreSQL
 
-Threads:
-- `POST /threads/` (create)
-- `GET /threads/` (list)
-- `GET /threads/{thread_id}` (get)
-- `PATCH /threads/{thread_id}` (update title)
-- `DELETE /threads/{thread_id}` (delete + cascade cleanup of memory and vectors)
+```env
+POSTGRES_HOST=127.0.0.1
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=test
+POSTGRES_DATABASE=langgraph_db
+PGVECTOR_COLLECTION_NAME=my_collection
+```
 
-Documents:
-- `GET /documents/{thread_id}` (list)
-- `POST /documents/upload/{thread_id}` (upload + async index)
-- `DELETE /documents/{document_id}` (remove + delete chunks from pgvector)
+### Frontend
 
-Chat and streaming:
-- `POST /chat/` (public streaming chat; no tools or memory)
-- `POST /chat/{thread_id}` (authenticated streaming agent with tools + memory)
-- `GET /chat/{thread_id}` (retrieve persisted chat history)
+```env
+BACKEND_BASE_URL=http://127.0.0.1:8000/api/v1
+```
 
-API docs:
-- Swagger UI: `http://localhost:8000/api/v1/docs`
-- ReDoc: `http://localhost:8000/api/v1/redoc`
+> Refer to `env.example` for the complete configuration.
 
-## 📡 Streaming Protocol
+## 🧩 API Endpoints
 
-Both chat endpoints stream newline-delimited JSON events. Event types include:
-- `llm_chunk`: incremental model output
-- `tool_call`: tool name and arguments when the agent invokes a tool
-- `tool_result`: tool output returned to the agent
+The API uses the following base path:
 
-Example stream (JSON lines):
+```text
+/api/v1
+```
+
+### Authentication
+
+| Method | Endpoint              | Description                 |
+| ------ | --------------------- | --------------------------- |
+| POST   | `/auth/signup`        | Create a new account        |
+| POST   | `/auth/login`         | Authenticate a user         |
+| GET    | `/auth/logout`        | Logout                      |
+| GET    | `/auth/refresh-token` | Generate a new access token |
+
+### User Management
+
+| Method | Endpoint                        | Description                  |
+| ------ | ------------------------------- | ---------------------------- |
+| GET    | `/users/me`                     | Get current user information |
+| PUT    | `/users/user-profile/{user_id}` | Update user profile          |
+| DELETE | `/users/user-profile/{user_id}` | Delete user profile          |
+
+### Threads
+
+| Method | Endpoint               | Description                       |
+| ------ | ---------------------- | --------------------------------- |
+| POST   | `/threads/`            | Create a conversation thread      |
+| GET    | `/threads/`            | List user threads                 |
+| GET    | `/threads/{thread_id}` | Retrieve a specific thread        |
+| PATCH  | `/threads/{thread_id}` | Update thread title               |
+| DELETE | `/threads/{thread_id}` | Delete thread and associated data |
+
+### Documents
+
+| Method | Endpoint                        | Description                 |
+| ------ | ------------------------------- | --------------------------- |
+| GET    | `/documents/{thread_id}`        | List documents              |
+| POST   | `/documents/upload/{thread_id}` | Upload and index a document |
+| DELETE | `/documents/{document_id}`      | Delete a document           |
+
+### Chat
+
+| Method | Endpoint            | Description                   |
+| ------ | ------------------- | ----------------------------- |
+| POST   | `/chat/`            | Public streaming chat         |
+| POST   | `/chat/{thread_id}` | Authenticated agent chat      |
+| GET    | `/chat/{thread_id}` | Retrieve conversation history |
+
+## 📡 Streaming Response Format
+
+The chat endpoints support **newline-delimited JSON (NDJSON)** streaming.
+
+The backend can send different event types depending on what the agent is doing.
+
+### Event Types
+
+* `llm_chunk` – Partial LLM response
+* `tool_call` – Indicates that the agent has selected a tool
+* `tool_result` – Contains the result returned by the selected tool
+
+Example:
 
 ```json
 {"type":"tool_call","name":"retrieve_user_documents","args":{"query":"policy overview"}}
-{"type":"tool_result","name":"retrieve_user_documents","content":"...retrieved text..."}
-{"type":"llm_chunk","content":"Here is a summary of your policy..."}
+
+{"type":"tool_result","name":"retrieve_user_documents","content":"Retrieved document content..."}
+
+{"type":"llm_chunk","content":"Based on the retrieved information..."}
 ```
 
-## 🔄 Architecture
+This allows the frontend to display the assistant's response while the agent is still processing the request.
 
-1. Ingestion & Indexing
-   - PDF, DOCX, TXT loaders; chunking via `RecursiveCharacterTextSplitter`
-   - Async indexing into pgvector using `langchain-postgres` with JSONB metadata
+## 🔄 System Architecture
 
-2. Retrieval
-   - Semantic similarity search filtered by `thread_id` and `user_id`
-   - Tool: `retrieve_user_documents` leverages the vector store retriever
+The application is divided into four primary stages.
 
-3. Agent & Generation
-   - LangGraph ReAct agent (`create_react_agent`) with tools (documents + Tavily)
-   - Configurable models via `MODEL_NAMES`
-   - End-to-end streaming
+### 1. Document Ingestion
 
-4. Memory
-   - LangGraph Postgres checkpointer (async) stores per-thread chat histories
-   - Thread deletion cleans up checkpointer state and related vector chunks
+Users can upload:
+
+* PDF
+* DOCX
+* TXT
+
+The documents are processed using document loaders and divided into smaller chunks with:
+
+```text
+RecursiveCharacterTextSplitter
+```
+
+The generated chunks are embedded and stored in PostgreSQL using pgvector.
+
+### 2. Retrieval
+
+When the user asks a question related to their uploaded documents, the retrieval tool performs semantic similarity search.
+
+The search can be restricted using metadata such as:
+
+```text
+user_id
+thread_id
+```
+
+This ensures that users only retrieve content belonging to their own conversations and documents.
+
+The main retrieval tool is:
+
+```text
+retrieve_user_documents
+```
+
+### 3. Agent Reasoning
+
+LangGraph manages the agent workflow.
+
+The agent can determine whether it should:
+
+1. Answer directly using the LLM.
+2. Search the user's uploaded documents.
+3. Perform a web search using Tavily.
+4. Combine retrieved information before generating the final response.
+
+The overall workflow follows a ReAct-style agent architecture.
+
+### 4. Persistent Memory
+
+Conversation state is stored using the **LangGraph PostgreSQL checkpointer**.
+
+Each conversation is associated with a unique thread, allowing the agent to maintain context across multiple messages.
+
+When a thread is removed, its associated conversation state and document-related data can also be cleaned up.
+
+## 🧠 Agent Workflow
+
+A simplified flow of the application is:
+
+```text
+                    ┌───────────────┐
+                    │     User      │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │   Streamlit   │
+                    │      UI       │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │   FastAPI     │
+                    │     API       │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │   LangGraph   │
+                    │     Agent     │
+                    └───────┬───────┘
+                            │
+                 ┌──────────┴──────────┐
+                 ▼                     ▼
+        ┌─────────────────┐   ┌─────────────────┐
+        │ Document Search │   │   Web Search    │
+        │    pgvector     │   │     Tavily      │
+        └────────┬────────┘   └────────┬────────┘
+                 │                     │
+                 └──────────┬──────────┘
+                            ▼
+                    ┌───────────────┐
+                    │      LLM      │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ Streaming     │
+                    │   Response    │
+                    └───────────────┘
+```
+
+## 🔐 Security & Data Isolation
+
+The application uses JWT authentication to identify users and protect private resources.
+
+User-specific filtering is applied to:
+
+* Conversation threads
+* Uploaded documents
+* Vector embeddings
+* Chat history
+
+This prevents one user's documents and conversations from being exposed to another user.
+
+JWT configuration is controlled through environment variables, allowing secrets and token lifetimes to be changed without modifying application code.
+
+## 📚 Document Processing Pipeline
+
+The document workflow can be summarized as:
+
+```text
+Document Upload
+      │
+      ▼
+Document Loader
+      │
+      ▼
+Text Extraction
+      │
+      ▼
+Text Chunking
+      │
+      ▼
+Embedding Generation
+      │
+      ▼
+PostgreSQL + pgvector
+      │
+      ▼
+Semantic Retrieval
+      │
+      ▼
+LangGraph Agent
+      │
+      ▼
+LLM Response
+```
+
+## 📖 API Documentation
+
+Once the backend is running, interactive API documentation is available through Swagger:
+
+```text
+http://localhost:8000/api/v1/docs
+```
+
+ReDoc is also available at:
+
+```text
+http://localhost:8000/api/v1/redoc
+```
+
+These interfaces can be used to inspect available endpoints and test API requests.
 
 ## 🖼️ Screenshots
 
 ### Unauthenticated Home Page
-![home](./screenshots/home.png)
+
+![Home Page](./screenshots/home.png)
 
 ### Authenticated Home Page
-![home-authenticated](./screenshots/home-authenticated.png)
 
-## 📝 License
+![Authenticated Home Page](./screenshots/home-authenticated.png)
 
-Licensed under the [MIT License](./LICENSE).
+## 📁 Project Structure
 
-## 🤝 Contributing
+A typical project structure is:
 
-Contributions are welcome! Please open an issue or submit a PR.
-
+```text
+langgraph-rag-agent/
+│
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── agents/
+│   │   ├── core/
+│   │   ├── models/
+│   │   ├── services/
+│   │   ├── tools/
+│   │   └── main.py
+│   │
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── gui/
+│   │   └── main.py
+│   └── requirements.txt
+│
+├── screenshots/
+│   ├── home.png
+│   └── home-authenticated.png
+│
+├── docker-compose.yml
+├── env.example
+├── .gitignore
+└── README.md
+```
 
